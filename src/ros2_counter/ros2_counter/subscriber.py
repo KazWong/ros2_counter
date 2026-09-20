@@ -97,6 +97,7 @@ class CounterGui:
             self._after_id = self._root.after(10, self._spin_once)
 
     def _spin_once(self) -> None:
+        self._after_id = None
         if self._closed:
             return
         if not rclpy.ok():

@@ -10,13 +10,54 @@ import pytest
 rclpy = pytest.importorskip("rclpy", reason="ROS 2 environment is not sourced")
 pytest.importorskip("ros2_counter.msg", reason="generated message is not built")
 
-from rclpy.executors import SingleThreadedExecutor
+from rclpy.executors import ExternalShutdownException, SingleThreadedExecutor
 from ros2_counter.publisher import CounterPublisher
-from ros2_counter.subscriber import CounterSubscriber
+from ros2_counter.subscriber import CounterGui, CounterSubscriber
 
 from ros2_counter.msg import CounterStamped
 
 pytestmark = pytest.mark.ros
+
+
+class FakeRoot:
+    """Minimal Tk scheduler used to verify lifecycle behavior without a display."""
+
+    def __init__(self) -> None:
+        self.callbacks = {}
+        self.cancelled = []
+        self.quit_calls = 0
+        self.destroy_calls = 0
+
+    def after(self, _delay_ms, callback):
+        identifier = f"after-{len(self.callbacks) + len(self.cancelled) + 1}"
+        self.callbacks[identifier] = callback
+        return identifier
+
+    def after_cancel(self, identifier) -> None:
+        self.cancelled.append(identifier)
+        self.callbacks.pop(identifier)
+
+    def run(self, identifier) -> None:
+        callback = self.callbacks.pop(identifier)
+        callback()
+
+    def quit(self) -> None:
+        self.quit_calls += 1
+
+    def destroy(self) -> None:
+        self.destroy_calls += 1
+
+
+def make_headless_gui() -> tuple[CounterGui, FakeRoot, Mock]:
+    root = FakeRoot()
+    node = Mock()
+    gui = CounterGui.__new__(CounterGui)
+    gui._root = root
+    gui._node = node
+    gui._closed = False
+    gui._after_id = None
+    gui._schedule_spin()
+    return gui, root, node
 
 
 @pytest.fixture
@@ -84,6 +125,60 @@ def test_subscriber_console_output_includes_required_fields(ros_context) -> None
     assert "count=7" in first_log and "publisher_stamp=1.000000000" in first_log
     assert "count=8" in second_log and "period=0.100000000s" in second_log
     assert "negative publisher timestamp interval rejected" in logger.warning.call_args.args[0]
+
+
+def test_gui_close_cancels_pending_work_and_is_idempotent() -> None:
+    gui, root, _node = make_headless_gui()
+    identifier = gui._after_id
+    scheduled_callback = root.callbacks[identifier]
+
+    gui.close()
+    gui.close()
+    with patch("ros2_counter.subscriber.rclpy.spin_once") as spin_once:
+        scheduled_callback()
+
+    assert gui._closed
+    assert gui._after_id is None
+    assert root.cancelled == [identifier]
+    assert root.callbacks == {}
+    assert root.quit_calls == 1
+    assert root.destroy_calls == 1
+    spin_once.assert_not_called()
+
+
+def test_normal_ros_shutdown_closes_gui_without_rescheduling() -> None:
+    gui, root, _node = make_headless_gui()
+    identifier = gui._after_id
+
+    with patch("ros2_counter.subscriber.rclpy.ok", return_value=False), patch(
+        "ros2_counter.subscriber.rclpy.spin_once"
+    ) as spin_once:
+        root.run(identifier)
+
+    spin_once.assert_not_called()
+    assert gui._closed
+    assert gui._after_id is None
+    assert root.callbacks == {}
+    assert root.quit_calls == 1
+    assert root.destroy_calls == 1
+
+
+def test_external_ros_shutdown_closes_gui_without_rescheduling() -> None:
+    gui, root, node = make_headless_gui()
+    identifier = gui._after_id
+
+    with patch("ros2_counter.subscriber.rclpy.ok", return_value=True), patch(
+        "ros2_counter.subscriber.rclpy.spin_once",
+        side_effect=ExternalShutdownException,
+    ) as spin_once:
+        root.run(identifier)
+
+    spin_once.assert_called_once_with(node, timeout_sec=0.0)
+    assert gui._closed
+    assert gui._after_id is None
+    assert root.callbacks == {}
+    assert root.quit_calls == 1
+    assert root.destroy_calls == 1
 
 
 @pytest.mark.gui
