@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """ROS 2 stamped uint32 counter publisher."""
 
 from __future__ import annotations

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """ROS subscriber and Tk/matplotlib presentation for counter timing."""
 
 from __future__ import annotations

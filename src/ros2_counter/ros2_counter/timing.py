@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """GUI-independent counter and publisher-timestamp timing primitives."""
 
 from __future__ import annotations
