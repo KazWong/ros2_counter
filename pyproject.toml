@@ -5,12 +5,16 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ros2_counter"
 version = "0.1.0"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"
-testpaths = ["tests"]
+testpaths = ["src/ros2_counter/test"]
+markers = [
+  "ros: requires a sourced ROS 2 environment",
+  "gui: requires a graphical display",
+]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py310"
 line-length = 100
