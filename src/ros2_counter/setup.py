@@ -11,6 +11,8 @@ setup(
         ('share/' + package_name, ['package.xml']),
     ],
     install_requires=['setuptools'],
+    tests_require=['pytest'],
+    test_suite='test.test_colcon',
     zip_safe=True,
     maintainer='ROS Counter maintainers',
     maintainer_email='maintainer@example.com',
