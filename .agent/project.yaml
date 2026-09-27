@@ -2,6 +2,6 @@ schema_version: 1
 name: ros2_counter
 repository: .
 scm:
-  provider: null
+  provider: github
   remote: origin
   base_branch: main
