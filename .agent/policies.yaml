@@ -1,0 +1,41 @@
+schema_version: 1
+risk_classes:
+  R0:
+    definition: non-behavioral change with no runtime effect
+    examples: [documentation, comments, formatting, metadata]
+    local_verification_required: false
+    integration_required: false
+    safety_review_required: false
+    merge_approvals: 1
+  R1:
+    definition: ordinary software behavior with bounded consequences
+    examples: [application behavior, tools, ordinary bug fixes]
+    local_verification_required: true
+    integration_required: false
+    safety_review_required: false
+    merge_approvals: 1
+  R2:
+    definition: significant safety, security, reliability, data, concurrency, production, or integration consequence
+    examples: [security-sensitive logic, concurrency, safety-relevant control, critical integration]
+    local_verification_required: true
+    integration_required: true
+    safety_review_required: true
+    merge_approvals: 2
+  R3:
+    definition: direct privileged, irreversible, destructive, production, or real-world physical consequence
+    examples: [physical actuation, device flashing, destructive operations, production deployment, high-impact infrastructure]
+    local_verification_required: true
+    integration_required: true
+    safety_review_required: true
+    merge_approvals: 2
+    hardware_approvals: 2
+immutable_rules:
+  - Risk is classified by consequence, not programming language, framework, or software domain.
+  - Verification lane selection is derived from approved plan requirements and registered test capabilities; execution profile is only a hint.
+  - Physical hardware execution requires R3 and explicit human-approved hardware policy.
+  - The framework may push only the managed work-item branch and create the configured pull request after candidate verification/review.
+  - Direct writes to protected branches and automatic force-pushes are forbidden.
+  - Merge remains human-gated and must respect branch protection.
+  - Physical hardware is never exposed to automatic test lanes.
+  - A coding agent never performs final review.
+  - Evidence and transition history are append-only operational records.

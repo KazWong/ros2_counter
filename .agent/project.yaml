@@ -1,0 +1,7 @@
+schema_version: 1
+name: ros2_counter
+repository: .
+scm:
+  provider: null
+  remote: origin
+  base_branch: main
